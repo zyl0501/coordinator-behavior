@@ -14,15 +14,19 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 /**
  * Created by zyl on 2017/10/26.
  */
-public class ScrollBehavior extends CoordinatorLayout.Behavior<View> {
+public class ScrollBehavior extends HeaderBehavior<View> {
+    private static final String TAG = ScrollBehavior.class.getSimpleName();
 
     private int targetId;
-    private int offsetTotal = 0;
-    private boolean scrolling = false;
+    private int scrollId;
     private View dependency;
+    private View scrollView;
     final Rect mTempRect1 = new Rect();
     final Rect mTempRect2 = new Rect();
 
@@ -34,6 +38,7 @@ public class ScrollBehavior extends CoordinatorLayout.Behavior<View> {
         super(context, attrs);
         final TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ScrollBehavior);
         targetId = a.getResourceId(R.styleable.ScrollBehavior_target_id, View.NO_ID);
+        scrollId = a.getResourceId(R.styleable.ScrollBehavior_scroll_id, View.NO_ID);
         a.recycle();
     }
 
@@ -41,6 +46,11 @@ public class ScrollBehavior extends CoordinatorLayout.Behavior<View> {
     public boolean layoutDependsOn(CoordinatorLayout parent, View child, View dependency) {
         if (targetId != View.NO_ID && targetId == dependency.getId()) {
             this.dependency = dependency;
+            if (scrollId != View.NO_ID) {
+                scrollView = child.findViewById(scrollId);
+            } else {
+                scrollView = child;
+            }
             return true;
         } else {
             return false;
@@ -95,8 +105,13 @@ public class ScrollBehavior extends CoordinatorLayout.Behavior<View> {
         return false;
     }
 
-    @Override
-    public boolean onLayoutChild(CoordinatorLayout parent, View child, int layoutDirection) {
+//    @Override
+//    boolean canDragView(View view) {
+//        return true;
+//    }
+
+    protected void layoutChild(final CoordinatorLayout parent, final View child,
+                               final int layoutDirection) {
         final View header = dependency;
 
         if (header != null) {
@@ -109,8 +124,8 @@ public class ScrollBehavior extends CoordinatorLayout.Behavior<View> {
                     parent.getHeight() + header.getBottom()
                             - parent.getPaddingBottom() - lp.bottomMargin);
 
-            final WindowInsetsCompat parentInsets = null;
-//            final WindowInsetsCompat parentInsets = parent.getLastWindowInsets();
+//            final WindowInsetsCompat parentInsets = null;
+            final WindowInsetsCompat parentInsets = getCoordinatorLastWindowInsets(parent);
             if (parentInsets != null && ViewCompat.getFitsSystemWindows(parent)
                     && !ViewCompat.getFitsSystemWindows(child)) {
                 // If we're set to handle insets but this child isn't, then it has been measured as
@@ -124,65 +139,29 @@ public class ScrollBehavior extends CoordinatorLayout.Behavior<View> {
             GravityCompat.apply(resolveGravity(lp.gravity), child.getMeasuredWidth(),
                     child.getMeasuredHeight(), available, out, layoutDirection);
 
-
             child.layout(out.left, out.top, out.right, out.bottom);
-            return true;
+            ViewCompat.offsetTopAndBottom(dependency, getTopAndBottomOffset());
         } else {
-            return false;
+            super.layoutChild(parent, child, layoutDirection);
         }
     }
 
     @Override
-    public boolean onDependentViewChanged(CoordinatorLayout parent, View child, View dependency) {
-        return super.onDependentViewChanged(parent, child, dependency);
-    }
-
-    @Override
-    public void onDependentViewRemoved(CoordinatorLayout parent, View child, View dependency) {
-        super.onDependentViewRemoved(parent, child, dependency);
-    }
-
-    @Override
     public boolean onStartNestedScroll(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View child, @NonNull View directTargetChild, @NonNull View target, int axes, int type) {
-        Log.e("raytest", "method onStartNestedScroll");
         return true;
     }
 
     @Override
-    public void onNestedScrollAccepted(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View child, @NonNull View directTargetChild, @NonNull View target, int axes, int type) {
-        Log.e("raytest", "method onNestedScrollAccepted");
-        super.onNestedScrollAccepted(coordinatorLayout, child, directTargetChild, target, axes, type);
-    }
-
-    @Override
-    public void onStopNestedScroll(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View child, @NonNull View target, int type) {
-        Log.e("raytest", "method onStopNestedScroll");
-        super.onStopNestedScroll(coordinatorLayout, child, target, type);
-    }
-
-    @Override
-    public void onNestedScroll(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View child, @NonNull View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed, int type) {
-        Log.e("raytest", "method onNestedScroll");
-        Log.e("raytest", "onNestedScroll " + "dxConsumed:" + dxConsumed + " dyConsumed:" + dyConsumed + " dxUnconsumed:" + dxUnconsumed + " dyUnconsumed:" + dyUnconsumed);
-        super.onNestedScroll(coordinatorLayout, child, target, dxConsumed, dyConsumed, dxUnconsumed, dyUnconsumed, type);
-    }
-
-    @Override
     public void onNestedPreScroll(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View child, @NonNull View target, int dx, int dy, @NonNull int[] consumed, int type) {
-        Log.e("raytest", "method onNestedPreScroll");
-        Log.e("raytest", "onNestedPreScroll " + "dy:" + dy);
         if (dependency != null) {
             if (dy != 0) {
-                Log.e("raytest", "onNestedPreScroll " + "canScrollVertically 向上:" + ViewCompat.canScrollVertically(child, 1));
-                Log.e("raytest", "onNestedPreScroll " + "canScrollVertically 向下:" + ViewCompat.canScrollVertically(child, -1));
                 int consumedY = 0;
                 int top = child.getTop();
                 int depTop = dependency.getTop();
-                Log.e("raytest", "onNestedPreScroll " + "top:" + top + " dy:" + dy);
                 //dy 小于0表示向上滑动，大于0表示向下滑动
                 if (dy < 0) {
                     // We're scrolling down
-                    if (!ViewCompat.canScrollVertically(child, -1)) {
+                    if (!ViewCompat.canScrollVertically(scrollView, -1)) {
                         if (depTop < 0) {
                             consumedY = -Math.max(dy, depTop);
                         }
@@ -190,33 +169,20 @@ public class ScrollBehavior extends CoordinatorLayout.Behavior<View> {
                 } else {
                     // We're scrolling up
                     //canScrollVertically 小于0表示能否向下滚动，大于0表示能否向上滚动
-                    if (ViewCompat.canScrollVertically(child, 1)) {
+                    if (ViewCompat.canScrollVertically(scrollView, 1)) {
                         if (top > 0) {
                             consumedY = -Math.min(dy, top);
                         }
                     }
                 }
-                Log.e("raytest", "onNestedPreScroll " + "consumedY:" + consumedY);
                 //offsetTopAndBottom 小于0向上，大于0向下
                 ViewCompat.offsetTopAndBottom(dependency, consumedY);
-                ViewCompat.offsetTopAndBottom(child, consumedY);
+                setTopAndBottomOffset(getTopAndBottomOffset() + consumedY);
                 consumed[1] = -consumedY;
             }
         } else {
             super.onNestedPreScroll(coordinatorLayout, child, target, dx, dy, consumed, type);
         }
-    }
-
-    @Override
-    public boolean onNestedFling(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View child, @NonNull View target, float velocityX, float velocityY, boolean consumed) {
-        Log.e("raytest", "method onNestedFling");
-        return super.onNestedFling(coordinatorLayout, child, target, velocityX, velocityY, consumed);
-    }
-
-    @Override
-    public boolean onNestedPreFling(@NonNull CoordinatorLayout coordinatorLayout, @NonNull View child, @NonNull View target, float velocityX, float velocityY) {
-        Log.e("raytest", "method onNestedPreFling");
-        return super.onNestedPreFling(coordinatorLayout, child, target, velocityX, velocityY);
     }
 
     private static int resolveGravity(int gravity) {
@@ -225,5 +191,15 @@ public class ScrollBehavior extends CoordinatorLayout.Behavior<View> {
 
     private int getScrollRange(View v) {
         return v.getMeasuredHeight();
+    }
+
+    private WindowInsetsCompat getCoordinatorLastWindowInsets(CoordinatorLayout coordinatorLayout) {
+        try {
+            Method method = CoordinatorLayout.class.getDeclaredMethod("getLastWindowInsets");
+            return (WindowInsetsCompat) method.invoke(coordinatorLayout);
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage(), e);
+        }
+        return null;
     }
 }

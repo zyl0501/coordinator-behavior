@@ -6,6 +6,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
 import com.ray.coordinatorlayout.test.MainActivity;
+import com.ray.coordinatorlayout.test.NestActivity;
 import com.ray.coordinatorlayout.test.R;
 
 /**
@@ -21,5 +22,9 @@ public class TouchActivity extends AppCompatActivity {
 
     public void onBehavior(View view) {
         startActivity(new Intent(this, MainActivity.class));
+    }
+
+    public void onNest(View view) {
+        startActivity(new Intent(this, NestActivity.class));
     }
 }
