@@ -17,15 +17,19 @@
 package com.ray.coordinatorlayout.test;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.CoordinatorLayout.Behavior;
 import android.support.v4.math.MathUtils;
 import android.support.v4.view.ViewCompat;
+import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.ViewGroup;
+import android.widget.ListView;
 import android.widget.OverScroller;
 
 /**
@@ -44,10 +48,20 @@ abstract class HeaderBehavior<V extends View> extends ViewOffsetBehavior<V> {
     private int mTouchSlop = -1;
     private VelocityTracker mVelocityTracker;
 
-    public HeaderBehavior() {}
+    private int targetId;
+    private int scrollId;
+    private View dependency;
+    private View scrollView;
+
+    public HeaderBehavior() {
+    }
 
     public HeaderBehavior(Context context, AttributeSet attrs) {
         super(context, attrs);
+        final TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.HeaderBehavior);
+        targetId = a.getResourceId(R.styleable.HeaderBehavior_hb_target_id, View.NO_ID);
+        scrollId = a.getResourceId(R.styleable.HeaderBehavior_hb_scroll_id, View.NO_ID);
+        a.recycle();
     }
 
     @Override
@@ -188,19 +202,33 @@ abstract class HeaderBehavior<V extends View> extends ViewOffsetBehavior<V> {
         return true;
     }
 
+    @Override
+    public boolean layoutDependsOn(CoordinatorLayout parent, View child, View dependency) {
+        if (targetId != View.NO_ID && targetId == dependency.getId()) {
+            this.dependency = dependency;
+            if (scrollId != View.NO_ID) {
+                scrollView = dependency.findViewById(scrollId);
+            } else {
+                scrollView = null;
+            }
+        }
+        return false;
+    }
+
     int setHeaderTopBottomOffset(CoordinatorLayout parent, V header, int newOffset) {
         return setHeaderTopBottomOffset(parent, header, newOffset,
                 Integer.MIN_VALUE, Integer.MAX_VALUE);
     }
 
     int setHeaderTopBottomOffset(CoordinatorLayout parent, V header, int newOffset,
-            int minOffset, int maxOffset) {
+                                 int minOffset, int maxOffset) {
         final int curOffset = getTopAndBottomOffset();
         int consumed = 0;
 
         if (minOffset != 0 && curOffset >= minOffset && curOffset <= maxOffset) {
             // If we have some scrolling range, and we're currently within the min and max
             // offsets, calculate a new offset
+            int newOffsetTemp = newOffset;
             newOffset = MathUtils.clamp(newOffset, minOffset, maxOffset);
 
             if (curOffset != newOffset) {
@@ -208,23 +236,37 @@ abstract class HeaderBehavior<V extends View> extends ViewOffsetBehavior<V> {
                 // Update how much dy we have consumed
                 consumed = curOffset - newOffset;
             }
+            scrollDependency(newOffset, newOffsetTemp - newOffset - consumed);
         }
-
         return consumed;
     }
 
-    int getTopBottomOffsetForScrollingSibling() {
-        return getTopAndBottomOffset();
-    }
 
     final int scroll(CoordinatorLayout coordinatorLayout, V header,
-            int dy, int minOffset, int maxOffset) {
+                     int dy, int minOffset, int maxOffset) {
         return setHeaderTopBottomOffset(coordinatorLayout, header,
-                getTopBottomOffsetForScrollingSibling() - dy, minOffset, maxOffset);
+                getTopAndBottomOffset() - dy, minOffset, maxOffset);
+    }
+
+    private void scrollDependency(int offset, int unConsumed) {
+        if (dependency != null) {
+            CoordinatorLayout.LayoutParams lp = (CoordinatorLayout.LayoutParams) dependency.getLayoutParams();
+            Behavior behavior = lp.getBehavior();
+            if(behavior!=null && (behavior instanceof ViewOffsetBehavior)) {
+                ((ViewOffsetBehavior) behavior).setTopAndBottomOffset(offset);
+            }
+            if(unConsumed != 0 && scrollView != null) {
+                if(scrollView instanceof RecyclerView) {
+                    scrollView.scrollBy(0, -unConsumed);
+                }else if(scrollView instanceof ListView){
+                    ((ListView) scrollView).smoothScrollByOffset(-unConsumed);
+                }
+            }
+        }
     }
 
     final boolean fling(CoordinatorLayout coordinatorLayout, V layout, int minOffset,
-            int maxOffset, float velocityY) {
+                        int maxOffset, float velocityY) {
         if (mFlingRunnable != null) {
             layout.removeCallbacks(mFlingRunnable);
             mFlingRunnable = null;

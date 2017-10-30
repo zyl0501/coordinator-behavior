@@ -11,16 +11,16 @@ import android.support.v4.view.WindowInsetsCompat;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.TouchDelegate;
 import android.view.View;
 import android.view.ViewGroup;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 /**
  * Created by zyl on 2017/10/26.
  */
-public class ScrollBehavior extends HeaderBehavior<View> {
+public class ScrollBehavior extends ViewOffsetBehavior<View> {
     private static final String TAG = ScrollBehavior.class.getSimpleName();
 
     private int targetId;
@@ -37,13 +37,13 @@ public class ScrollBehavior extends HeaderBehavior<View> {
     public ScrollBehavior(Context context, AttributeSet attrs) {
         super(context, attrs);
         final TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ScrollBehavior);
-        targetId = a.getResourceId(R.styleable.ScrollBehavior_target_id, View.NO_ID);
-        scrollId = a.getResourceId(R.styleable.ScrollBehavior_scroll_id, View.NO_ID);
+        targetId = a.getResourceId(R.styleable.ScrollBehavior_sb_target_id, View.NO_ID);
+        scrollId = a.getResourceId(R.styleable.ScrollBehavior_sb_scroll_id, View.NO_ID);
         a.recycle();
     }
 
     @Override
-    public boolean layoutDependsOn(CoordinatorLayout parent, View child, View dependency) {
+    public boolean layoutDependsOn(final CoordinatorLayout parent, View child, final View dependency) {
         if (targetId != View.NO_ID && targetId == dependency.getId()) {
             this.dependency = dependency;
             if (scrollId != View.NO_ID) {
@@ -51,6 +51,18 @@ public class ScrollBehavior extends HeaderBehavior<View> {
             } else {
                 scrollView = child;
             }
+
+//            parent.post(new Runnable() {
+//                @Override
+//                public void run() {
+//                    Rect bounds = new Rect();
+//                    scrollView.getHitRect(bounds);
+//                    bounds.top -= dependency.getMeasuredHeight();
+//                    Log.e(TAG, "bounds: "+bounds);
+//                    TouchDelegate touchDelegate = new TouchDelegate(bounds, scrollView);
+//                    parent.setTouchDelegate(touchDelegate);
+//                }
+//            });
             return true;
         } else {
             return false;
@@ -140,7 +152,9 @@ public class ScrollBehavior extends HeaderBehavior<View> {
                     child.getMeasuredHeight(), available, out, layoutDirection);
 
             child.layout(out.left, out.top, out.right, out.bottom);
-            ViewCompat.offsetTopAndBottom(dependency, getTopAndBottomOffset());
+//            ViewCompat.offsetTopAndBottom(dependency, getTopAndBottomOffset());
+
+            scrollDependency(getTopAndBottomOffset());
         } else {
             super.layoutChild(parent, child, layoutDirection);
         }
@@ -176,12 +190,24 @@ public class ScrollBehavior extends HeaderBehavior<View> {
                     }
                 }
                 //offsetTopAndBottom 小于0向上，大于0向下
-                ViewCompat.offsetTopAndBottom(dependency, consumedY);
+                scrollDependency(getTopAndBottomOffset() + consumedY);
                 setTopAndBottomOffset(getTopAndBottomOffset() + consumedY);
                 consumed[1] = -consumedY;
             }
         } else {
             super.onNestedPreScroll(coordinatorLayout, child, target, dx, dy, consumed, type);
+        }
+    }
+
+    private void scrollDependency(int offset) {
+        if (dependency != null) {
+            CoordinatorLayout.LayoutParams lp = (CoordinatorLayout.LayoutParams) dependency.getLayoutParams();
+            CoordinatorLayout.Behavior behavior = lp.getBehavior();
+            if (behavior != null && (behavior instanceof ViewOffsetBehavior)) {
+                ((ViewOffsetBehavior) behavior).setTopAndBottomOffset(offset);
+            } else {
+                ViewCompat.offsetTopAndBottom(dependency, offset - getTopAndBottomOffset());
+            }
         }
     }
 

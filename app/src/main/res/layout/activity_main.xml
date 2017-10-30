@@ -11,8 +11,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_behavior="com.ray.coordinatorlayout.test.ScrollBehavior"
-        app:scroll_id="@+id/recycler_view"
-        app:target_id="@+id/header">
+        app:sb_scroll_id="@+id/recycler_view"
+        app:sb_target_id="@+id/header">
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/recycler_view"
@@ -22,20 +22,13 @@
         </android.support.v7.widget.RecyclerView>
     </com.tomtaw.widget.multi_swipe_refresh_layout.MultiSwipeRefreshLayout>
 
-    <!--<android.support.v7.widget.RecyclerView-->
-    <!--android:id="@+id/recycler_view"-->
-    <!--android:layout_width="match_parent"-->
-    <!--android:layout_height="match_parent"-->
-    <!--app:target_id="@+id/header"-->
-    <!--app:layout_behavior="com.ray.coordinatorlayout.test.ScrollBehavior2"-->
-    <!--&gt;-->
-    <!--</android.support.v7.widget.RecyclerView>-->
-
-
     <FrameLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        app:hb_target_id="@+id/multi_swipe"
+        app:hb_scroll_id="@+id/recycler_view"
+        >
 
         <Button
             android:layout_width="wrap_content"
@@ -49,5 +42,12 @@
             android:scaleType="fitXY"
             android:src="@drawable/home_banner" />
     </FrameLayout>
+
+    <!--<android.support.v7.widget.RecyclerView-->
+    <!--android:id="@+id/recycler_view"-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="match_parent"-->
+    <!--app:layout_behavior="com.ray.coordinatorlayout.test.ScrollBehavior"-->
+    <!--app:sb_target_id="@+id/header"/>-->
 
 </android.support.design.widget.CoordinatorLayout>

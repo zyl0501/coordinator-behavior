@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="ScrollBehavior">
-        <attr name="target_id" format="reference"/>
-        <attr name="scroll_id" format="reference"/>
+        <attr name="sb_target_id" format="reference"/>
+        <attr name="sb_scroll_id" format="reference"/>
+    </declare-styleable>
+
+    <declare-styleable name="HeaderBehavior">
+        <attr name="hb_target_id" format="reference"/>
+        <attr name="hb_scroll_id" format="reference"/>
     </declare-styleable>
 </resources>

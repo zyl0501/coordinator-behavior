@@ -17,6 +17,6 @@ public class HeaderBehaviorImpl extends HeaderBehavior<View> {
 
     @Override
     boolean canDragView(View view) {
-        return false;
+        return true;
     }
 }

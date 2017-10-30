@@ -33,8 +33,8 @@ public class ScrollBehavior2 extends ViewOffsetBehavior<View> {
     public ScrollBehavior2(Context context, AttributeSet attrs) {
         super(context, attrs);
         final TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ScrollBehavior);
-        targetId = a.getResourceId(R.styleable.ScrollBehavior_target_id, View.NO_ID);
-        scrollId = a.getResourceId(R.styleable.ScrollBehavior_scroll_id, View.NO_ID);
+        targetId = a.getResourceId(R.styleable.ScrollBehavior_sb_target_id, View.NO_ID);
+        scrollId = a.getResourceId(R.styleable.ScrollBehavior_sb_scroll_id, View.NO_ID);
         a.recycle();
     }
 

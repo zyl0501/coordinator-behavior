@@ -22,7 +22,7 @@ public class NestActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
         recyclerView.setAdapter(new SimpleAdapter(this, 20));
 
-        recyclerView.setNestedScrollingEnabled(true);
+        recyclerView.setNestedScrollingEnabled(false);
 
         recyclerView.postDelayed(new Runnable() {
             @Override
